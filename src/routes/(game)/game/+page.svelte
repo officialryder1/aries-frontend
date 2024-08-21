@@ -14,7 +14,7 @@
     let isLoading = false
     let showMatch = false
     let createMatch = false
-
+    let matchAccepted = false
     
     let message = ''
 
@@ -22,6 +22,8 @@
         isLoading = true
         createMatch = true
         showMatch = false
+
+        
 
         // implement a api call logic here
         const res = await fetch(`http://127.0.0.1:8000/api/game/match_request?user_id=${user}`) 
@@ -36,7 +38,6 @@
 
         }, 10000);
     }
-
 
 
 // i have created the api endpoint for requesting a match using api/game/request_match endpoints
@@ -59,17 +60,26 @@
     $: console.log(request)
 
     async function acceptMatch(e){
-        const res = await fetch(`http://127.0.0.1:8000/api/game/accept_match/?user_id=${user}&match=${e}`, {
-            method: 'GET'
+        const res = await fetch(`http://127.0.0.1:8000/api/game/accept_match/${e}/?user_id=${user}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
 
-        const response = await res.json()
+        if(res.ok){
+            const data = await res.json()
 
-        if(!response.ok){
-            
-            console.log(response)
+            const url = data.redirect_url
+            const id = url.split('/').pop()
+
+            goto(`/game/${id}`)
+            // window.location.href = data.redirect_url
+        } else{
+            console.error("Error acceting match", res.statusText)
+            console.log(e)
         }
-        goto('/')
+
        
     }
 
