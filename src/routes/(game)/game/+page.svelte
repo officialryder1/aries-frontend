@@ -1,12 +1,14 @@
 <script>
 	import { goto } from '$app/navigation';
     import Button from '$lib/components/button.svelte'
-    import {onMount} from 'svelte'
+    import {onMount, onDestroy} from 'svelte'
+    import Pusher from 'pusher-js';
 
     export let data;
 
     $: user = data?.user.id
     $: request = []
+    $: url = ""
 
     // $: console.log(request)
 
@@ -14,13 +16,19 @@
     let isLoading = false
     let showMatch = false
     let createMatch = false
-    let matchAccepted = false
+
+    $: matchAccepted = false
+    $: avaliableMatch = []
+    
+   
     
     let message = ''
 
+    let pusher, channel;
+
+
     async function findMatch(){
         isLoading = true
-        createMatch = true
         showMatch = false
 
         
@@ -30,6 +38,7 @@
         
         message = await res.json()
 
+        createMatch = true
         setTimeout(() => {
             isLoading = false
             console.log("Match found")
@@ -42,12 +51,37 @@
 
 // i have created the api endpoint for requesting a match using api/game/request_match endpoints
 
+    onMount(()=> {
+        pusher = new Pusher('2d9060f8f7ec2034a519', {
+            cluster: 'eu',
+        });
+
+        channel = pusher.subscribe('match-channel')
+
+        //listeb for new event
+        channel.bind("ew-match", function(data) {
+            console.log("new Match available", data)
+
+            avaliableMatch = [...avaliableMatch, {
+                requester_name: data.requester_name,
+                id: data.match_request_id
+            }]
+        })
+        fetchExistingMatches();
+    })
+
+    async function fetchExistingMatches() {
+        const res = await fetch(`http://127.0.0.1:8000/api/game/pending_matches?user_id=${user}`);
+        const result = await res.json();
+        availableMatches = result.matches;
+    }
+
     async function joinMatch(){
         isLoading = true
         showMatch = true
         createMatch = false
 
-        setTimeout(() => {
+        setTimeout(async () => {
             isLoading = false
             console.log("Match found")
             // implement logic for what happens after a match has be found.
@@ -57,7 +91,6 @@
         
     }
 
-    $: console.log(request)
 
     async function acceptMatch(e){
         const res = await fetch(`http://127.0.0.1:8000/api/game/accept_match/${e}/?user_id=${user}`, {
@@ -70,19 +103,46 @@
         if(res.ok){
             const data = await res.json()
 
-            const url = data.redirect_url
+            url = data.redirect_url
             const id = url.split('/').pop()
+            matchAccepted = true
+            
 
             goto(`/game/${id}`)
+            createMatch = true
             // window.location.href = data.redirect_url
         } else{
-            console.error("Error acceting match", res.statusText)
+            console.error("Error accepting match", res.statusText)
             console.log(e)
         }
 
        
     }
 
+    // Polling mechanism to check if a match is accepted
+	onMount(() => {
+        pusher = new Pusher('2d9060f8f7ec2034a519', {
+            cluster: 'eu',
+        });
+
+        // Subscribe to the Pusher channel
+        channel = pusher.subscribe('match-channel');
+
+        // Listen for match acceptance event
+        channel.bind('match-accepted', function(data){
+            console.log('Match accepted:', data);
+            
+            if (data.match_id) {
+				goto(data.redirect_url);
+			}
+            
+        });
+
+      
+    });
+
+    
+    
 </script>
 
 <div class="main">
@@ -100,12 +160,14 @@
       
     {:else }
         <p >Find Match</p>
+       
     {/if}
 
+    	<!-- Show Available Matches -->
     {#if showMatch}
-        {#if request }
+        {#if avaliableMatch.length > 0 }
             <p>Select match</p>
-            {#each request as {requester_name, id} }
+            {#each avaliableMatch as {requester_name, id} }
                 <div class="match">
                     <h4>Match request by</h4>
                     <p>{requester_name}</p>
@@ -119,7 +181,10 @@
         {/if}
     {/if}
 
-   
+    <!-- Redirect to Match -->
+    {#if matchAccepted}
+    <a href={url}>Enter match</a>
+    {/if}
 </div> 
 
 <style>

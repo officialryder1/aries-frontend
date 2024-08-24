@@ -61,7 +61,8 @@
 
 <style>
     .card {
-        border: 1px solid orangered;
+       height: 400px;
+        border: 1px solid rgb(167, 157, 153);
         padding: 1rem;
         margin: 1rem;
         border-radius: 5px;
@@ -72,5 +73,8 @@
     .card img {
         max-width: 100%;
         height: 100px;
+    }
+    h2{
+        font-size: small;
     }
 </style>

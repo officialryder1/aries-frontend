@@ -2,7 +2,7 @@
     import CharacterCard from '../../../lib/components/characterCard.svelte'
     import Card from '../../../lib/components/Card.svelte'
     import { characterStore } from '../../../lib/stores/characters.js'; 
-    import { get } from 'svelte/store'
+  
     import { userCardStore } from '../../../lib/stores/userCard'
 	import { onMount } from 'svelte';
 
@@ -33,7 +33,7 @@
         cards = cardDetail
     })
 
-0
+
  
     $: total = cards.reduce((acc, card) => {
         return acc + card.card_point
@@ -53,7 +53,6 @@
             rank = 'S'
         }
 
-        console.log(rank)
     }
 </script>
 
