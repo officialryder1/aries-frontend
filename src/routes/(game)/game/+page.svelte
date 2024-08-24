@@ -17,10 +17,12 @@
     let showMatch = false
     let createMatch = false
 
-    $: matchAccepted = false
-    $: availableMatch = []
     
-   
+    $: matchAccepted = false
+    $: availableMatch = availableMatch || []
+
+    
+    $: console.log(availableMatch)
     
     let message = ''
 
@@ -59,10 +61,10 @@
         channel = pusher.subscribe('match-channel')
 
         //listeb for new event
-        channel.bind("ew-match", function(data) {
+        channel.bind("new-match", function(data) {
             console.log("new Match available", data)
 
-            avaliableMatch = [...avaliableMatch, {
+            availableMatch = [...availableMatch, {
                 requester_name: data.requester_name,
                 id: data.match_request_id
             }]
@@ -73,7 +75,7 @@
     async function fetchExistingMatches() {
         const res = await fetch(`http://127.0.0.1:8000/api/game/pending_matches?user_id=${user}`);
         const result = await res.json();
-        availableMatches = result.matches;
+        availableMatch = result.matches;
     }
 
     async function joinMatch(){
@@ -85,12 +87,26 @@
             isLoading = false
             console.log("Match found")
             // implement logic for what happens after a match has be found.
-            request = data?.result
 
         }, 1000);
+        if (Array.isArray(data?.result)) {
+            data.result.forEach(match => {
+                availableMatch = [...availableMatch, {
+                    requester_name: match.requester_name,
+                    id: match.id
+                }];
+            });
+        } else if (data?.result) { 
+            // In case data.result is a single match object
+            availableMatch = [...availableMatch, {
+                requester_name: data.result.requester_name,
+                id: data.result.id
+            }];
+        }
         
     }
 
+    
 
     async function acceptMatch(e){
         const res = await fetch(`http://127.0.0.1:8000/api/game/accept_match/${e}/?user_id=${user}`, {
@@ -120,6 +136,7 @@
     }
 
     // Polling mechanism to check if a match is accepted
+    // accept match pusher call
 	onMount(() => {
         pusher = new Pusher('2d9060f8f7ec2034a519', {
             cluster: 'eu',
@@ -132,9 +149,12 @@
         channel.bind('match-accepted', function(data){
             console.log('Match accepted:', data);
             
-            if (data.match_id) {
-				goto(data.redirect_url);
-			}
+            // Redirect only if the current user is one of the players
+            if (data.match_id && (data.player_one_id === user || data.player_two_id === user)) {
+                url = data?.redirect_url;
+                console.log(`Redirecting to ${url}`)
+                goto(data.redirect_url);
+            }
             
         });
 
@@ -165,7 +185,7 @@
 
     	<!-- Show Available Matches -->
     {#if showMatch}
-        {#if availableMatch.length > 0 }
+        {#if availableMatch.length > 0}
             <p>Select match</p>
             {#each availableMatch as {requester_name, id} }
                 <div class="match">
