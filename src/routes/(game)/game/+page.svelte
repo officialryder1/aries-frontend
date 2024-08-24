@@ -167,7 +167,7 @@
     {#if showMatch}
         {#if availableMatch.length > 0 }
             <p>Select match</p>
-            {#each avaliableMatch as {requester_name, id} }
+            {#each availableMatch as {requester_name, id} }
                 <div class="match">
                     <h4>Match request by</h4>
                     <p>{requester_name}</p>
