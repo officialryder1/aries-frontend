@@ -18,7 +18,7 @@
     let createMatch = false
 
     $: matchAccepted = false
-    $: avaliableMatch = []
+    $: availableMatch = []
     
    
     
@@ -165,7 +165,7 @@
 
     	<!-- Show Available Matches -->
     {#if showMatch}
-        {#if avaliableMatch.length > 0 }
+        {#if availableMatch.length > 0 }
             <p>Select match</p>
             {#each avaliableMatch as {requester_name, id} }
                 <div class="match">
