@@ -55,30 +55,34 @@
 
     }
 </script>
-
+{#if player}
 <header>
     <h1>Profile</h1>
 <hr>
 
-<h2 class="username">Username: {player.user_name}, Race: {player.character_name}</h2>
-<p class="mana">{player.mana}mp | {player.hp}hp</p>
-<p class="mana">{total} card points</p>
-<h3 class="rank">rank: <b>{rank}</b> </h3>
-</header>
-<div class="card">
-    {#if avatar.image }
-        <CharacterCard avatarUrl={avatar.image} alt={avatar.name} name={avatar.name} description={avatar.description}/>
-    {:else}
-        <p>Loading character card...</p>
-    {/if}
-</div>
-<h3>Your Card</h3><hr>
-<div class="card-collection">
-    
-    {#each cards as card}
-        <Card {card}/>
-    {/each}
-</div>
+    <h2 class="username">Username: {player.user_name}, Race: {player.character_name}</h2>
+    <p class="mana">{player.mana}mp | {player.hp}hp</p>
+    <p class="mana">{total} card points</p>
+    <h3 class="rank">rank: <b>{rank}</b> </h3>
+    </header>
+    <div class="card">
+        {#if avatar.image }
+            <CharacterCard avatarUrl={avatar.image} alt={avatar.name} name={avatar.name} description={avatar.description}/>
+        {:else}
+            <p>Loading character card...</p>
+        {/if}
+    </div>
+    <h3>Your Card</h3><hr>
+    <div class="card-collection">
+        
+        {#each cards as card}
+            <Card {card}/>
+        {/each}
+    </div>
+{:else}
+    <h1>You dont have an account! Create one today.</h1>
+    <a href="/create_avatar">Create here.</a>
+{/if}
 <style>
     h1{
         font-weight: 900;

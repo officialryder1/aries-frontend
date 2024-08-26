@@ -2,101 +2,92 @@
     import { onMount } from 'svelte';
     import Card from '../../../../lib/components/Card.svelte';
     import Button from '$lib/components/Button.svelte';
-    export let data
+    export let data;
 
-    $: match = data?.match
-    $: error = data?.error
-    $: console.log(match)
-    $: player = data?.player[0]
-    $: cards = []
-    $: avatar = []
+    $: match = data?.match;
+    $: error = data?.error;
+    $: player = data?.player[0];
+    $: cards = [];
+    $: avatar = [];
+    $: user = data?.user.username
 
-    // $: {
-    //     console.log(player)
-    //     console.log(cards)
-    //     console.log(avatar)
-    // }
+    onMount(async () => {
+        // Fetch card details
+        cards = await Promise.all(player.card.map(async (cardId) => {
+            const res = await fetch(`http://127.0.0.1:8000/api/get_card/${cardId}`);
+            return await res.json();
+        }));
 
-    
-    onMount(async() =>{
-        const cardDetail = await Promise.all(player.card.map(async (cardId) => {
-            const res = await fetch(`http://127.0.0.1:8000/api/get_card/${cardId}`)
-            const card = await res.json()
-            return card;
-        }))
+        // Fetch character details
+        const res = await fetch(`http://127.0.0.1:8000/api/get_character/${player.character}`);
+        avatar = await res.json();
+    });
 
-        const characterDetail = async() =>{
-            const chara = await fetch(`http://127.0.0.1:8000/api/get_character/${player.character}`)
-            const result = await chara.json()
-            return result;
-        }
-        avatar = await characterDetail()
-        cards = cardDetail
-    })
-    
-    // Logic to show card in the card dashboard
-    $: card_pick = []
-    $: picked = []
-    $: card =[]
-    $: showPick = false
-   
-    
-    async function playCard(id){
-        showPick = true
-        const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`)
-        picked = await res.json()
-        card.push(picked)
-        return picked
+    $: pickedCard = null;
+    $: cardItems = [];
+    $: card = pickedCard
+    $:{
+        console.log(pickedCard)
+        
     }
-    
-    $: console.log(card_pick)
-    $: console.log(picked)
+
+
+    async function playCard(id) {
+        const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`);
+        const picked = await res.json();
+        cardItems = [...cardItems, picked];
+        pickedCard = picked;
+    }
 </script>
 
-<div>
+<div class="body">
     {#if match.detail}
         <h2>{match.detail}🔥❌</h2>
         <p>Go back <a href="/">home 🏠</a></p>
-    {:else} 
-        {#if error}
-            {error}
-        {:else}
-            <h1>{match.playerone} <small>vs</small> {match.playertwo}</h1><br>
+    {:else if error}
+        {error}
+    {:else}
+        <h1>{match.playerone} <small>vs</small> {match.playertwo}</h1>
+        <br>
+        <p>Place Card</p>
+        {#if pickedCard}
             <div class="place-card">
-                <p>Place Card</p>
                 <span>
                     <div class="player1">
                         <p>{match.playerone}</p>
-                        {#if showPick}
-                            <Card {card}/>
+                        {#if match.playerone === user}
+                            <Card {card} />
                         {/if}
                     </div>
                     <hr>
                     <div class="player2">
                         <p>{match.playertwo}</p>
-                        
+                        {#if user === match.playertwo}
+                            <Card {card} />
+                        {/if}
                     </div>
                 </span>
             </div>
-            <p>pick a card to play</p>
-            <div class="player_deck">
-                
-                {#each cards as card }
+        {:else}
+            <p>Pick a card to play</p>
+        {/if}
+        <div class="player_deck">
+            {#if cards.length > 0}
+                {#each cards as card}
                     <Card {card}>
                         <span class="button">
-                            <Button type="danger" on:click={() => playCard(card.id)}>use</Button>
+                            <Button type="danger" on:click={() => playCard(card.id)}>Use</Button>
                         </span>
                     </Card>
                 {/each}
-            </div>
-        {/if}
+            {/if}
+        </div>
     {/if}
-
-    
 </div>
+
 <style>
-    div{
-        overflow: hidden;
+   .body{
+        scrollbar-width: 10px;
     }
     h1{
         text-transform: capitalize;
