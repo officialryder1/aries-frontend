@@ -3,6 +3,7 @@
     import Button from '$lib/components/button.svelte'
     import {onMount, onDestroy} from 'svelte'
     import Pusher from 'pusher-js';
+    import {PUBLIC_API_KEY} from '$env/static/public'
 
     export let data;
 
@@ -54,13 +55,13 @@
 // i have created the api endpoint for requesting a match using api/game/request_match endpoints
 
     onMount(()=> {
-        pusher = new Pusher('2d9060f8f7ec2034a519', {
+        pusher = new Pusher(PUBLIC_API_KEY, {
             cluster: 'eu',
         });
 
         channel = pusher.subscribe('match-channel')
 
-        //listeb for new event
+        //listen for new event
         channel.bind("new-match", function(data) {
             console.log("new Match available", data)
 
@@ -138,7 +139,7 @@
     // Polling mechanism to check if a match is accepted
     // accept match pusher call
 	onMount(() => {
-        pusher = new Pusher('2d9060f8f7ec2034a519', {
+        pusher = new Pusher(PUBLIC_API_KEY, {
             cluster: 'eu',
         });
 

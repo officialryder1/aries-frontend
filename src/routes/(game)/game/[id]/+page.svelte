@@ -2,7 +2,12 @@
     import { onMount } from 'svelte';
     import Card from '../../../../lib/components/Card.svelte';
     import Button from '$lib/components/Button.svelte';
+    import Pusher from 'pusher-js';
+    import {PUBLIC_API_KEY} from '$env/static/public'
+
     export let data;
+
+    let pusher, channel
 
     $: match = data?.match;
     $: error = data?.error;
@@ -10,6 +15,14 @@
     $: cards = [];
     $: avatar = [];
     $: user = data?.user.username
+
+    // $: pickedCard = null;
+    // $: cardItems = [];
+    // $: card = pickedCard
+    
+    // Initialize player slots
+    $: playerOneCard = null
+    $: playerTwoCard = null
 
     onMount(async () => {
         // Fetch card details
@@ -21,23 +34,50 @@
         // Fetch character details
         const res = await fetch(`http://127.0.0.1:8000/api/get_character/${player.character}`);
         avatar = await res.json();
+
+        // Initialize Pusher and subscribe to 'match-channel'
+        pusher = new Pusher(PUBLIC_API_KEY, {
+            cluster: 'eu'
+        });
+
+        channel = pusher.subscribe('match-channel');
+
+        // Listen for 'get-card' event
+        channel.bind('get-card', function(data) {
+            console.log('New card available:', data);
+
+            if(data.user === match.playerone){
+                playerOneCard = data.card
+            }else if(data.user === match.playertwo){
+                playerTwoCard = data.card
+            }
+        });
+  
     });
 
-    $: pickedCard = null;
-    $: cardItems = [];
-    $: card = pickedCard
-    $:{
-        console.log(pickedCard)
-        
-    }
 
-
+   
     async function playCard(id) {
         const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`);
         const picked = await res.json();
-        cardItems = [...cardItems, picked];
-        pickedCard = picked;
+        
+        await fetch('http://127.0.0.1:8000/api/trigger_card', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+
+            body: JSON.stringify({
+                card: picked,
+                user:user
+            })
+        })
+
+       
+       
+
     }
+
 </script>
 
 <div class="body">
@@ -50,27 +90,29 @@
         <h1>{match.playerone} <small>vs</small> {match.playertwo}</h1>
         <br>
         <p>Place Card</p>
-        {#if pickedCard}
-            <div class="place-card">
-                <span>
-                    <div class="player1">
-                        <p>{match.playerone}</p>
-                        {#if match.playerone === user}
-                            <Card {card} />
-                        {/if}
-                    </div>
-                    <hr>
-                    <div class="player2">
-                        <p>{match.playertwo}</p>
-                        {#if user === match.playertwo}
-                            <Card {card} />
-                        {/if}
-                    </div>
-                </span>
-            </div>
-        {:else}
-            <p>Pick a card to play</p>
-        {/if}
+       
+        <div class="place-card">
+            <span>
+                <div class="player1">
+                    <p>{match.playerone}</p>
+                    {#if playerOneCard}
+                        <Card card={playerOneCard} />
+                    {:else}
+                        <p>No Card Selected</p>
+                    {/if}
+                </div>
+                <hr>
+                <div class="player2">
+                    <p>{match.playertwo}</p>
+                    {#if playerTwoCard}
+                        <Card card={playerTwoCard} />
+                    {:else}
+                        <p>No Card selected</p>
+                    {/if}
+                </div>
+            </span>
+        </div>
+
         <div class="player_deck">
             {#if cards.length > 0}
                 {#each cards as card}
@@ -88,6 +130,8 @@
 <style>
    .body{
         scrollbar-width: 10px;
+        font: inherit;
+        height: 100vh;
     }
     h1{
         text-transform: capitalize;
