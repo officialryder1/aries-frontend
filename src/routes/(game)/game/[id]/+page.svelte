@@ -19,11 +19,17 @@
     // Initialize player slots
     $: playerOneCard = null;
     $: playerTwoCard = null;
+    // health
     $: playerOneHealth = 0;
     $: playerTwoHealth = 0;
+    // mana
+    $: playerOneMana= 0;
+    $: playerTwoMana = 0;
 
-    console.log(playerOneCard)
-    console.log(playerTwoCard)
+    // $:{
+    //     // console.log(playerOneMana)
+    // }
+    let coolDown = false
     onMount(async () => {
         // Fetch card details
         cards = await Promise.all(player.card.map(async (cardId) => {
@@ -43,12 +49,14 @@
             const response = await fetch(`http://127.0.0.1:8000/api/get_player?user_id=${match.player_one}`);
             const playerOneData = await response.json();
             playerOneHealth = playerOneData[0]?.hp;
+            playerOneMana = playerOneData[0]?.mana;
         }
 
         if (playerTwo) {
             const response = await fetch(`http://127.0.0.1:8000/api/get_player?user_id=${match.player_two}`);
             const playerTwoData = await response.json();
             playerTwoHealth = playerTwoData[0]?.hp;
+            playerTwoMana = playerTwoData[0]?.mana;
         }
 
         // Initialize Pusher and subscribe to 'match-channel'
@@ -65,14 +73,22 @@
             if (data.user === match.playerone) {
                 playerOneCard = data.card;
                 playerTwoHealth = data.player_two_health;
+                playerOneMana = data.player_one_mana;
+                console.log(playerOneMana)
             } else if (data.user === match.playertwo) {
                 playerTwoCard = data.card;
                 playerOneHealth = data.player_one_health;
+                playerTwoMana = data.player_two_mana
+                console.log(playerOneMana)
             }
         });
     });
 
     async function playCard(id) {
+        if(coolDown){
+            alert("Please wait 5sec before playing another card.")
+            return
+        }
         const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`);
         const picked = await res.json();
 
@@ -104,6 +120,12 @@
                 playerOneHealth -= picked.attack_point;
             }
         }
+
+        // set cool-down
+        coolDown = true;
+        setTimeout(() =>{
+            coolDown = false
+        }, 5000)
     }
 </script>
 
@@ -120,7 +142,7 @@
         <div class="place-card">
             <span>
                 <div class="player1">
-                    <p>{match.playerone} - {playerOneHealth} hp</p>
+                    <p>{match.playerone} - {playerOneHealth} hp | {playerOneMana} mp</p>
                     {#if playerOneCard}
                         <Card card={playerOneCard} />
                     {:else}
@@ -129,7 +151,7 @@
                 </div>
                 <hr>
                 <div class="player2">
-                    <p>{match.playertwo} - {playerTwoHealth} hp</p>
+                    <p>{match.playertwo} - {playerTwoHealth} hp | {playerTwoMana} mp</p>
                     {#if playerTwoCard}
                         <Card card={playerTwoCard} />
                     {:else}
@@ -144,7 +166,7 @@
                 {#each cards as card}
                     <Card {card}>
                         <span class="button">
-                            <Button type="danger" on:click={() => playCard(card.id)}>Use</Button>
+                            <Button type="danger" on:click={() => playCard(card.id)} aria-disabled={coolDown}>Use</Button>
                         </span>
                     </Card>
                 {/each}

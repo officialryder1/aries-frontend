@@ -2,12 +2,13 @@
     export let type = 'primary';
     export let flat = false;
     export let inverse = false;
+    
 
     // all this variable will be responsible for how the button will display when called
 </script>
 
 <!-- the on:click will make this button clickable -->
-<button type="submit" class="{type}" class:flat={flat} class:inverse={inverse} on:click>
+<button type="submit" class="{type}" class:flat={flat} class:inverse={inverse} aria-disabled on:click >
     <slot></slot>
 </button>
 
