@@ -21,7 +21,7 @@
     
     $: matchAccepted = false
     $: availableMatch = availableMatch || []
-
+    
     
     $: console.log(availableMatch)
     

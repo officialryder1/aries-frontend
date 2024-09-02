@@ -3,6 +3,7 @@
     import Card from '../../../../lib/components/Card.svelte';
     import Button from '$lib/components/Button.svelte';
     import Pusher from 'pusher-js';
+    import {goto} from '$app/navigation'
     import { PUBLIC_API_KEY } from '$env/static/public';
 
     export let data;
@@ -15,6 +16,7 @@
     $: player = data?.player[0];
     $: cards = [];
     $: user = data?.user.username;
+    $: user_id = data?.user.id
 
     // Initialize player slots
     $: playerOneCard = null;
@@ -25,17 +27,31 @@
     // mana
     $: playerOneMana= 0;
     $: playerTwoMana = 0;
+    $: winner = null
 
-    // $:{
-    //     // console.log(playerOneMana)
-    // }
-    let coolDown = false
+    // Player rank interval
+    let timeInterval = 0
+    let canPlay = true
+
+
+    $:{
+        console.log(winner)
+    }
+    
     onMount(async () => {
         // Fetch card details
         cards = await Promise.all(player.card.map(async (cardId) => {
             const res = await fetch(`http://127.0.0.1:8000/api/get_card/${cardId}`);
             return await res.json();
         }));
+        // Fetch player rank and set the timer based on rank
+        fetchPlayerRank()
+  
+        // if (playerRank){
+        //     timer = rankTimeInterval[playerRank] || 10
+        //     timeLeft = timer
+        //     startTime()
+        // }
 
         // Fetch player details
         if (data?.player.length > 0) {
@@ -81,12 +97,31 @@
                 playerTwoMana = data.player_two_mana
                 console.log(playerOneMana)
             }
+
+            // Check for match end conditions
+            if (playerOneHealth <= 0 && playerTwoHealth > 0) {
+                // Player Two wins
+                goto(`/game/${match.id}/winner`);
+            } else if (playerTwoHealth <= 0 && playerOneHealth > 0) {
+                // Player One wins
+                goto(`/game/${match.id}/winner`);
+            }
+
         });
     });
 
+
+            
+    async function fetchPlayerRank(){
+        const response = await fetch(`http://127.0.0.1:8000/api/player_rank?user=${user_id}`)
+        const data = await response.json()
+        console.log(data?.time_interval)
+        timeInterval = data?.time_interval
+        return timeInterval
+    }
     async function playCard(id) {
-        if(coolDown){
-            alert("Please wait 5sec before playing another card.")
+        if(!canPlay){
+            alert("Please wait for your time!.")
             return
         }
         const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`);
@@ -121,12 +156,38 @@
             }
         }
 
+        // Check for a winner immediately after playing a card
+        if (playerOneHealth <= 0 && playerTwoHealth > 0) {
+            // Player Two wins
+            goto(`/game/${match.id}/winner`);
+        } else if (playerTwoHealth <= 0 && playerOneHealth > 0) {
+            // Player One wins
+            goto(`/game/${match.id}/winner`);
+        }
         // set cool-down
-        coolDown = true;
+        canPlay = false;
         setTimeout(() =>{
-            coolDown = false
-        }, 5000)
+            canPlay = true;
+        }, timeInterval * 1000) // convert seconnds into milliseconds
+
+       
     }
+
+    
+    let countdown = timeInterval
+
+    const countdownInterval = setInterval(() => {
+        if(countdown > 0){
+            countdown--
+        } else{
+            clearInterval(countdownInterval)
+        }
+    }, 1000)
+
+    $: if(canPlay){
+        countdown = timeInterval
+    }
+
 </script>
 
 <div class="body">
@@ -136,42 +197,47 @@
     {:else if error}
         {error}
     {:else}
-        <h1>{match.playerone} <small>vs</small> {match.playertwo}</h1>
-        <br>
-        <p>Place Card</p>
-        <div class="place-card">
-            <span>
-                <div class="player1">
-                    <p>{match.playerone} - {playerOneHealth} hp | {playerOneMana} mp</p>
-                    {#if playerOneCard}
-                        <Card card={playerOneCard} />
-                    {:else}
-                        <p>No Card Selected</p>
-                    {/if}
-                </div>
-                <hr>
-                <div class="player2">
-                    <p>{match.playertwo} - {playerTwoHealth} hp | {playerTwoMana} mp</p>
-                    {#if playerTwoCard}
-                        <Card card={playerTwoCard} />
-                    {:else}
-                        <p>No Card Selected</p>
-                    {/if}
-                </div>
-            </span>
-        </div>
+        {#if winner}
+            <h1>WInner: {winner}</h1>
+        {:else}
+            <h1>{match.playerone} <small>vs</small> {match.playertwo}</h1>
+            <p>{canPlay ? 'You can play now!' : `Next move in ${countdown} seconds`}</p>
+            <br>
+            <p>Place Card</p>
+            <div class="place-card">
+                <span>
+                    <div class="player1">
+                        <p>{match.playerone} - {playerOneHealth} hp | {playerOneMana} mp</p>
+                        {#if playerOneCard}
+                            <Card card={playerOneCard} />
+                        {:else}
+                            <p>No Card Selected</p>
+                        {/if}
+                    </div>
+                    <hr>
+                    <div class="player2">
+                        <p>{match.playertwo} - {playerTwoHealth} hp | {playerTwoMana} mp</p>
+                        {#if playerTwoCard}
+                            <Card card={playerTwoCard} />
+                        {:else}
+                            <p>No Card Selected</p>
+                        {/if}
+                    </div>
+                </span>
+            </div>
 
-        <div class="player_deck">
-            {#if cards.length > 0}
-                {#each cards as card}
-                    <Card {card}>
-                        <span class="button">
-                            <Button type="danger" on:click={() => playCard(card.id)} aria-disabled={coolDown}>Use</Button>
-                        </span>
-                    </Card>
-                {/each}
-            {/if}
-        </div>
+            <div class="player_deck">
+                {#if cards.length > 0}
+                    {#each cards as card}
+                        <Card {card}>
+                            <span class="button">
+                                <Button type="danger" on:click={() => playCard(card.id)}>Use</Button>
+                            </span>
+                        </Card>
+                    {/each}
+                {/if}
+            </div>
+        {/if}
     {/if}
 </div>
 
