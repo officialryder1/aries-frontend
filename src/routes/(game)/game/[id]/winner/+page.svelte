@@ -56,6 +56,7 @@
     {/if}
 </div>
 {#if user === winner}
+<h1 class="select">Select one card from opponent</h1>
 <div class="loser-cards">
     <div class="inner">
         {#each loserCards as card }
@@ -108,5 +109,9 @@
     }
     .inner{
         display: flex;
+    }
+    .select{
+        font-size: medium;
+        font-weight: 500;
     }
 </style>

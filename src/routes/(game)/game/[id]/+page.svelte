@@ -156,14 +156,14 @@
             }
         }
 
-        // Check for a winner immediately after playing a card
-        if (playerOneHealth <= 0 && playerTwoHealth > 0) {
-            // Player Two wins
-            goto(`/game/${match.id}/winner`);
-        } else if (playerTwoHealth <= 0 && playerOneHealth > 0) {
-            // Player One wins
-            goto(`/game/${match.id}/winner`);
-        }
+        // // Check for a winner immediately after playing a card
+        // if (playerOneHealth <= 0 && playerTwoHealth > 0) {
+        //     // Player Two wins
+        //     goto(`/game/${match.id}/winner`);
+        // } else if (playerTwoHealth <= 0 && playerOneHealth > 0) {
+        //     // Player One wins
+        //     goto(`/game/${match.id}/winner`);
+        // }
         // set cool-down
         canPlay = false;
         setTimeout(() =>{
