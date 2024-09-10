@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import Card from '../../../../lib/components/Card.svelte';
     import Button from '$lib/components/Button.svelte';
     import Pusher from 'pusher-js';
@@ -34,9 +34,9 @@
     let canPlay = true
 
 
-    $:{
-        console.log(winner)
-    }
+    // $:{
+    //     console.log(winner)
+    // }
     
     onMount(async () => {
         // Fetch card details
@@ -124,8 +124,17 @@
             alert("Please wait for your time!.")
             return
         }
+
+        // Fetch the selected card details
         const res = await fetch(`http://127.0.0.1:8000/api/get_card/${id}`);
         const picked = await res.json();
+
+        // Check if the player has enough mana to play the card
+        let currentMana = user === match.playerone ? playerOneMana : playerTwoMana
+        if(currentMana < picked.mana_point){
+            alert("Not enough mana to play this card!")
+            return
+        }
 
         // Update the current player's card slot
         if (user === match.playerone) {
@@ -156,14 +165,13 @@
             }
         }
 
-        // // Check for a winner immediately after playing a card
-        // if (playerOneHealth <= 0 && playerTwoHealth > 0) {
-        //     // Player Two wins
-        //     goto(`/game/${match.id}/winner`);
-        // } else if (playerTwoHealth <= 0 && playerOneHealth > 0) {
-        //     // Player One wins
-        //     goto(`/game/${match.id}/winner`);
-        // }
+        // Deduct the mana used to play the card
+        if(user === match.playerone){
+            playerOneMana -= picked.mana_point
+        } else if (user === match.playerTwo){
+            playerTwoMana -= picked.mana_point
+        }
+
         // set cool-down
         canPlay = false;
         setTimeout(() =>{
@@ -187,6 +195,10 @@
     $: if(canPlay){
         countdown = timeInterval
     }
+    // onDestroy(() =>{
+    //     pusher.unsubscribe('match-channel')
+    // })
+
 
 </script>
 
